@@ -6,5 +6,6 @@
 - Basically going to point it at a folder and be like, sync it!
 - In short a wrapper round the eXist XMLRPC 
 
-    $ python pyexist sync --folder /my_files --exist localhost:8080 --option bloody-do-it
-
+```
+$ python pyexist sync --folder /my_files --exist localhost:8080 --option bloody-do-it
+```
