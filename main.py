@@ -15,7 +15,8 @@ class ExistSync():
                  password=None, 
                  address=None, 
                  port=8080,
-                 app_base_folder=''):
+                 app_base_folder='',
+                 local_base_folder=''):
 
         assert app_base_folder, 'Must provide a base folder for the application'
 
@@ -28,7 +29,7 @@ class ExistSync():
             verbose=False,
             use_builtin_types=True
         )
-
+        self.local_path = local_base_folder
         self.app_path = f'/db/apps/{app_base_folder}/'
 
         # Create the base collection if not there already
@@ -36,7 +37,7 @@ class ExistSync():
 
 
     def copy_file(self, full_file_path):
-        root_to_base = root_to_baser(os.path.join('tests', 'TEST_SYNC_FOLDER'))
+        root_to_base = root_to_baser(self.local_path)
 
         _local_file_modified_timestamp = os.path.getmtime(full_file_path)
         local_file_modified = datetime.datetime.utcfromtimestamp(_local_file_modified_timestamp)
@@ -83,7 +84,7 @@ class ExistSync():
             return False
 
     def create_dir(self, full_dir_path):
-        root_to_base = root_to_baser(os.path.join('tests', 'TEST_SYNC_FOLDER'))
+        root_to_base = root_to_baser(self.local_path)
         dir_path = root_to_base(full_dir_path)
 
         if self.dir_exists(dir_path):
@@ -95,6 +96,16 @@ class ExistSync():
                 print(':', colored('SUCCESS', 'green'))
             except:
                 print(':', colored('FAIL', 'red'))
+
+
+    def sync_up(self):
+        
+        
+        for path, dirs, files in os.walk(self.local_path):
+            for d in dirs:
+                self.create_dir(f'{path}/{d}')
+            for f in files:
+                self.copy_file(f'{path}/{f}')
 
 
 
@@ -111,14 +122,7 @@ def root_to_baser(base_path):
     return inner
 
 
-def walk_folder(folder=None, e=None):
-    assert e, 'Must pass an ExistSync instance'
-    root_to_base = root_to_baser(folder)
-    for path, dirs, files in os.walk(folder):
-        for d in dirs:
-            e.create_dir(f'{path}/{d}')
-        for f in files:
-            e.copy_file(f'{path}/{f}')
+
 
 
 
@@ -152,8 +156,10 @@ if __name__ == '__main__':
     '''
     print('\nSyncing with eXist')
     print('------------------\n')
-    e = ExistSync(username='admin', password='', address='localhost', port=8080, app_base_folder='test')
-    walk_folder('tests/TEST_SYNC_FOLDER', e=e)
+    e = ExistSync(username='admin', password='', address='localhost', port=8080, app_base_folder='test', local_base_folder='tests/TEST_SYNC_FOLDER')
+    e.sync_up()
+
+    #walk_folder('tests/TEST_SYNC_FOLDER', e=e)
     
     #print('exist', e.get_exist_file_modified_datetime('test1.xql'))
     '''
