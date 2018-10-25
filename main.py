@@ -67,8 +67,9 @@ class ExistSync():
         self.app_path = f'/db/apps/{app_base_folder}/'
 
         # Create the base collection if not there already
+        print('Checking eXist collection exists...')
         self.create_dir(self.app_path)
-        self.clean_exist()
+        
 
 
     def copy_file(self, full_file_path):
@@ -133,6 +134,7 @@ class ExistSync():
 
 
     def sync_up(self):
+        self.clean_exist()
         self.copy_dir(self.local_path)
         
 
@@ -160,7 +162,7 @@ class ExistSync():
         except xmlrpc.client.Fault:
             return
 
-        print(' DIR', colored(f'/{dir_path}', 'yellow'), 'moved:', colored('DELETING OLD', 'yellow'), end='')
+        print(' DIR', colored(f'/{dir_path}', 'yellow'), 'moved/deleted:', colored('DELETING OLD', 'yellow'), end='')
         try:
             self.rpc.removeCollection(f'{self.app_path}{dir_path}')
             print(':', colored('SUCCESS', 'green'))
@@ -176,7 +178,7 @@ class ExistSync():
         if not self.rpc.describeResource(f'{self.app_path}{file_path}'):
             return
 
-        print(colored(f' {file_path}', 'yellow'), 'moved:', colored('DELETING OLD', 'yellow'), end='')
+        print(colored(f' {file_path}', 'yellow'), 'moved/deleted:', colored('DELETING OLD', 'yellow'), end='')
         try:
             self.rpc.remove(f'{self.app_path}{file_path}')
             print(':', colored('SUCCESS', 'green'))
@@ -239,6 +241,7 @@ class FileWatcher(FileSystemEventHandler):
 
 
         self.move_cache = []
+        
 
 
   
@@ -254,10 +257,21 @@ class FileWatcher(FileSystemEventHandler):
          
             self.move_cache.append(event)
             
-        if event.event_type == 'modified' and not event.is_directory:
+        elif event.event_type == 'modified' and not event.is_directory:
             e.copy_file(event.src_path)
 
 
+        elif event.event_type == 'created':
+            if event.is_directory:
+                e.create_dir(event.src_path)
+            else:
+                e.copy_file(event.src_path)
+
+        elif event.event_type == 'deleted':
+            if event.is_directory:
+                e.remove_dir(event.src_path)
+            else:
+                e.remove_file(event.src_path)
 
 
 
@@ -271,6 +285,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Sync directories with an eXist-DB instance')
     parser.add_argument('action', help='Action to carry out: [sync-up]')
+    parser.add_argument('watch', nargs='?', help='Action to carry out: [watch]')
     parser.add_argument('-d', '--dir', help='Local directory to sync to eXist-DB')
     parser.add_argument('-e', '--exist', help='Address of eXist-DB instance, e.g. localhost, 196.168.0.1')
     parser.add_argument('-p', '--port', help='Port of the eXist instance, e.g. 8080 ')
@@ -278,10 +293,11 @@ if __name__ == '__main__':
     parser.add_argument('-u', '--username', help='username for eXist instance')
     parser.add_argument('-a', '--password', help='password for eXist instance')
     args = parser.parse_args()
-    print(args)
+
   
-    print('\nSyncing with eXist')
-    print('------------------\n')
+    print(f'\n{colored("eXist-DB Synchroniser", "green")}')
+    print(f'{colored("=====================", "green")}\n')
+
     e = ExistSync(username=args.username, 
                   password=args.password, 
                   address=args.exist, 
@@ -289,20 +305,25 @@ if __name__ == '__main__':
                   app_base_folder=args.collection, 
                   local_base_folder=args.dir)
 
-    
+    if args.action == 'sync-up':
+        print(f'\n\n{colored("Syncing initial state", "green")}')
+        print(f'{colored("---------------------", "green")}\n')
+        e.sync_up()
 
-   
-    event_handler = FileWatcher(exist_sync=e)
-    observer = Observer()
-    observer.schedule(event_handler, path='tests/TEST_SYNC_FOLDER/', recursive=True)
-    observer.start()
+        if args.watch:
+            print(f'\n\n{colored("Watching folder for changes...", "green")}')
+            print(f'{colored("------------------------------", "green")}\n')
+            event_handler = FileWatcher(exist_sync=e)
+            observer = Observer()
+            observer.schedule(event_handler, path='tests/TEST_SYNC_FOLDER/', recursive=True)
+            observer.start()
 
-    try:
-        while True:
-            pass
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
+            try:
+                while True:
+                    pass
+            except KeyboardInterrupt:
+                observer.stop()
+            observer.join()
 
 
 
