@@ -31,6 +31,9 @@ class ExistSync():
 
         self.app_path = f'/db/apps/{app_base_folder}/'
 
+        # Create the base collection if not there already
+        self.create_dir(self.app_path)
+
 
     def copy_file(self, full_file_path):
         root_to_base = root_to_baser(os.path.join('tests', 'TEST_SYNC_FOLDER'))
