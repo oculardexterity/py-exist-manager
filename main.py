@@ -24,6 +24,9 @@ def root_to_baser(base_path):
 
 
 def get_mime_type(file_path):
+    ''' Get mime type of file, either by mapping plain-text files via
+        file extension, or by using the Magic library to guess e.g. jpg
+    '''
     plain_text_mime_types = {
         'xml': 'xml',
         'xql': 'xquery'
