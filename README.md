@@ -21,7 +21,12 @@ $ python main.py sync-up watch --config config.toml development
 ```
 
 - Can load config from a toml file
-- Or supply everything as a command line arg, which is tedious
+- Or supply everything as a command line arg, which is tedious:
+
+```
+$ python main.py sync-up watch --dir tests/TEST_SYNC_FOLDER --exist localhost --port 8080 --username admin --password password --collection test
+
+```
 
 
 (Also don't see why you couldn't import the classes and use them in your application, if that was your gig.)
