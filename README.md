@@ -1,11 +1,27 @@
 # PyExist
 
+Version 0.1
+
 ## A Python command-line tool for pushing a folder of stuff to eXist-DB
 
 - So that you can develop locally, and then push.
-- Basically going to point it at a folder and be like, sync it!
-- In short a wrapper round the eXist XMLRPC 
+- Point it at a directory and be like, *sync me*!
+- Also watches a folder for changes
 
+- Currently supports:
+    - Modifying files
+    - Creating files
+    - Creation sub-collections
+    - Renaming sub-collections 
+
+
+Currently works like:
 ```
-$ python pyexist sync --folder /my_files --exist localhost:8080 --option bloody-do-it
+$ python main.py sync-up watch --config config.toml development
 ```
+
+- Can load config from a toml file
+- Or supply everything as a command line arg, which is tedious
+
+
+(Also don't see why you couldn't import the classes and use them in your application, if that was your gig.)
