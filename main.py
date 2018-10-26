@@ -1,18 +1,20 @@
+import argparse
+from collections import namedtuple
 import datetime
 import os
 import sys
-from collections import namedtuple
 import threading
 import time
 import xmlrpc.client
 
-import argparse
 import magic
 from termcolor import colored
+import toml
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from watchdog.events import DirMovedEvent
 from watchdog.events import FileMovedEvent
+
 
 
 
@@ -286,27 +288,55 @@ class FileWatcher(FileSystemEventHandler):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Sync directories with an eXist-DB instance')
-    parser.add_argument('action', help='Action to carry out: [sync-up]')
-    parser.add_argument('watch', nargs='?', help='Action to carry out: [watch]')
-    parser.add_argument('-d', '--dir', help='Local directory to sync to eXist-DB')
-    parser.add_argument('-e', '--exist', help='Address of eXist-DB instance, e.g. localhost, 196.168.0.1')
-    parser.add_argument('-p', '--port', help='Port of the eXist instance, e.g. 8080 ')
-    parser.add_argument('-c', '--collection', help='Name of base collection in eXist')
-    parser.add_argument('-u', '--username', help='username for eXist instance')
-    parser.add_argument('-a', '--password', help='password for eXist instance')
-    args = parser.parse_args()
-
-  
     print(f'\n{colored("eXist-DB Synchroniser", "green")}')
     print(f'{colored("=====================", "green")}\n')
 
-    e = ExistSync(username=args.username, 
-                  password=args.password, 
-                  address=args.exist, 
-                  port=args.port, 
-                  app_base_folder=args.collection, 
-                  local_base_folder=args.dir)
+    parser = argparse.ArgumentParser(description='Sync directories with an eXist-DB instance')
+    parser.add_argument('action', help='Action to carry out: [sync-up]')
+    parser.add_argument('watch', nargs='?', help='Watch folder for changes: [watch]')
+    parser.add_argument('-c', '--config', nargs=2, help='Path to a config file, config version to use')
+
+    parser.add_argument('-d', '--dir', help='Local directory to sync to eXist-DB')
+    parser.add_argument('-e', '--exist', help='Address of eXist-DB instance, e.g. localhost, 196.168.0.1')
+    parser.add_argument('-p', '--port', help='Port of the eXist instance, e.g. 8080 ')
+    parser.add_argument('-col', '--collection', help='Name of base collection in eXist')
+    parser.add_argument('-un', '--username', help='username for eXist instance')
+    parser.add_argument('-pwd', '--password', help='password for eXist instance')
+    
+    args = parser.parse_args()
+    #print(args)
+
+    if args.config:
+        for arg in ('dir', 'exist', 'port', 'collection', 'username', 'password'):
+            if getattr(args, arg):
+                parser.error(f'Configuration args are not allowed at same time as a config file')
+        
+        conf = toml.load(args.config[0])
+        env = args.config[1]
+        if env not in conf:
+            sys.exit(f'{colored("CONFIG ERROR:", "red")} Environment \'{env}\' not found in {colored(args.config[0], "green")}\nEXITING')
+
+        print(f'Loading eXist config from {colored(args.config[0], "green")}, environment: \'{args.config[1]}\'')
+        e = ExistSync(username=conf[env]['username'], 
+                  password=conf[env]['password'], 
+                  address=conf[env]['exist'], 
+                  port=conf[env]['port'], 
+                  app_base_folder=conf[env]['collection'], 
+                  local_base_folder=conf['local']['dir'])
+
+
+        
+    else:
+        e = ExistSync(
+            username=args.username,
+            password=args.password,
+            address=args.exist,
+            port=args.port,
+            app_base_folder=args.collection,
+            local_base_folder=args.dir)
+    
+
+    
 
     if args.action == 'sync-up':
         print(f'\n\n{colored("Syncing initial state", "green")}')
@@ -328,5 +358,5 @@ if __name__ == '__main__':
                 observer.stop()
             observer.join()
 
-
+    
 

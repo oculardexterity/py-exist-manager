@@ -1,0 +1,9 @@
+[local]
+dir = "tests/TEST_SYNC_FOLDER"
+
+[development]
+exist = "localhost"
+port = 8080
+username = "admin"
+password = ''
+collection = "test"
